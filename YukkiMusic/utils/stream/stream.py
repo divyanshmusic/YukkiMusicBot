@@ -41,25 +41,33 @@ async def stream(
     video: Union[bool, str] = None,
     streamtype: Union[bool, str] = None,
     spotify: Union[bool, str] = None,
+    forceplay: Union[bool, str] = None,
 ):
+    if not result:
+        return
     if video:
         if not await is_video_allowed(chat_id):
             raise AssistantErr(_["play_6"])
+    if forceplay:
+        await Yukki.force_stop_stream(chat_id)
     if streamtype == "playlist":
         msg = f"{_['playlist_16']}\n\n"
         count = 0
         for search in result:
             if int(count) == config.PLAYLIST_FETCH_LIMIT:
                 continue
-            (
-                title,
-                duration_min,
-                duration_sec,
-                thumbnail,
-                vidid,
-            ) = await YouTube.details(
-                search, False if spotify else True
-            )
+            try:
+                (
+                    title,
+                    duration_min,
+                    duration_sec,
+                    thumbnail,
+                    vidid,
+                ) = await YouTube.details(
+                    search, False if spotify else True
+                )
+            except:
+                continue
             if str(duration_min) == "None":
                 continue
             if duration_sec > config.DURATION_LIMIT:
@@ -81,7 +89,8 @@ async def stream(
                 msg += f"{count}- {title[:70]}\n"
                 msg += f"{_['playlist_17']} {position}\n\n"
             else:
-                db[chat_id] = []
+                if not forceplay:
+                    db[chat_id] = []
                 status = True if video else None
                 try:
                     file_path, direct = await YouTube.download(
@@ -104,6 +113,7 @@ async def stream(
                     vidid,
                     user_id,
                     "video" if video else "audio",
+                    forceplay=forceplay,
                 )
                 if video:
                     await add_active_video_chat(chat_id)
@@ -169,7 +179,8 @@ async def stream(
                 ),
             )
         else:
-            db[chat_id] = []
+            if not forceplay:
+                db[chat_id] = []
             await Yukki.join_call(
                 chat_id, original_chat_id, file_path, video=status
             )
@@ -184,6 +195,7 @@ async def stream(
                 vidid,
                 user_id,
                 "video" if video else "audio",
+                forceplay=forceplay,
             )
             if video:
                 await add_active_video_chat(chat_id)
@@ -223,7 +235,8 @@ async def stream(
                 ),
             )
         else:
-            db[chat_id] = []
+            if not forceplay:
+                db[chat_id] = []
             await Yukki.join_call(
                 chat_id, original_chat_id, file_path, video=None
             )
@@ -237,6 +250,7 @@ async def stream(
                 streamtype,
                 user_id,
                 "audio",
+                forceplay=forceplay,
             )
             if video:
                 await add_active_video_chat(chat_id)
@@ -277,7 +291,8 @@ async def stream(
                 ),
             )
         else:
-            db[chat_id] = []
+            if not forceplay:
+                db[chat_id] = []
             await Yukki.join_call(
                 chat_id, original_chat_id, file_path, video=status
             )
@@ -292,6 +307,7 @@ async def stream(
                 streamtype,
                 user_id,
                 "video" if video else "audio",
+                forceplay=forceplay,
             )
             if video:
                 await add_active_video_chat(chat_id)
@@ -333,7 +349,8 @@ async def stream(
                 ),
             )
         else:
-            db[chat_id] = []
+            if not forceplay:
+                db[chat_id] = []
             n, file_path = await YouTube.video(link)
             if n == 0:
                 raise AssistantErr(_["str_3"])
@@ -351,6 +368,7 @@ async def stream(
                 vidid,
                 user_id,
                 "video" if video else "audio",
+                forceplay=forceplay,
             )
             if video:
                 await add_active_video_chat(chat_id)
@@ -388,7 +406,8 @@ async def stream(
                 )
             )
         else:
-            db[chat_id] = []
+            if not forceplay:
+                db[chat_id] = []
             await Yukki.join_call(
                 chat_id, original_chat_id, link, video=True
             )
@@ -402,6 +421,7 @@ async def stream(
                 user_name,
                 link,
                 "video",
+                forceplay=forceplay,
             )
             await add_active_video_chat(chat_id)
             await music_on(chat_id)
